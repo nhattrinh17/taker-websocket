@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { GatewaysModule } from './gateways/gateways.module';
+import { BullQueueModule } from './modules/bullQueue/bullQueue.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { GatewaysModule } from './gateways/gateways.module';
       cache: true,
     }),
     GatewaysModule,
+    BullQueueModule,
   ],
   controllers: [AppController],
   providers: [AppService],

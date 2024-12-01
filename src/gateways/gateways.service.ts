@@ -73,4 +73,13 @@ export class GatewaysService implements OnModuleInit {
       );
     }
   }
+
+  public async forceLeaveRoom(socketId: string, room: string) {
+    // Gửi sự kiện tới tất cả các nodes qua Redis Adapter
+    this.server.to(socketId).emit('forceLeaveRoom', room);
+
+    console.log(
+      `Broadcasted forceLeaveRoom for Socket ${socketId} and Room ${room}`,
+    );
+  }
 }

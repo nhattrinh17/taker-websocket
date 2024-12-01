@@ -31,6 +31,7 @@ export class ConnectionsGateway
     // Handle the event when the shoemaker connects
     switch (dataAuth.type) {
       case AppType.shoemakers:
+        // TODO: FIX
         // this.eventEmitter.emit('shoemaker-update-status', {
         //   isOnline: true,
         //   userId: dataAuth.userId,
@@ -44,6 +45,7 @@ export class ConnectionsGateway
         client.join(dataAuth.userId);
         break;
       case AppType.customers:
+        // TODO: FIX
         // this.eventEmitter.emit('join-room', {
         //   userId: dataAuth.userId,
         // });
@@ -58,8 +60,10 @@ export class ConnectionsGateway
         break;
     }
 
-    // if(dataAuth.type ==)
-    // Make the socket join the room
+    client.on('forceLeaveRoom', (room: string) => {
+      client.leave(room);
+      console.log(`Socket ${client.id} forced to leave room ${room}`);
+    });
   }
 
   handleDisconnect(client: any) {
