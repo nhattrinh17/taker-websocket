@@ -2,6 +2,7 @@ import { Redis } from 'ioredis';
 
 export default class RedisService {
   private readonly client: Redis;
+  private readonly subscriber: Redis;
 
   constructor() {
     try {
@@ -10,12 +11,31 @@ export default class RedisService {
         port: parseInt(process.env.QUEUE_PORT, 10),
         password: String(process.env.QUEUE_PASS),
       });
+      this.subscriber = new Redis({
+        host: process.env.QUEUE_HOST,
+        port: parseInt(process.env.QUEUE_PORT, 10),
+        password: String(process.env.QUEUE_PASS),
+      });
     } catch (error) {
-      console.log('🚀 ~ RedisService ~ constructor ~ error:', error, process.env.QUEUE_HOST, process.env.QUEUE_PORT, process.env.QUEUE_PASS);
+      console.log(
+        '🚀 ~ RedisService ~ constructor ~ error:',
+        error,
+        process.env.QUEUE_HOST,
+        process.env.QUEUE_PORT,
+        process.env.QUEUE_PASS,
+      );
     }
 
     // Enable keyspace notifications
     // this.client.config('SET', 'notify-keyspace-events', 'Ex');
+  }
+
+  publish(channel: string, message: string) {
+    return this.client.publish(channel, message);
+  }
+
+  getSubscriber(): Redis {
+    return this.subscriber;
   }
 
   /**
@@ -94,7 +114,12 @@ export default class RedisService {
     return this.client.sadd(key, valueData);
   }
 
-  // Check phần tử tồn tại
+  /**
+   * Check phần tử tồn tại
+   * @param key
+   * @param valueData
+   * @returns
+   */
   sismember(key: string, valueData: any) {
     return this.client.sismember(key, valueData);
   }
@@ -104,9 +129,27 @@ export default class RedisService {
     return this.client.smembers(key);
   }
 
-  // Xóa một phần tửu trong set
+  /**
+   * Xóa một phần tửu trong set
+   */
   srem(key: string, valueData: any) {
     return this.client.srem(key, valueData);
+  }
+
+  async hget(key: string, field: string) {
+    return await this.client.hget(key, field);
+  }
+
+  async hgetAll(key: string) {
+    return await this.client.hgetall(key);
+  }
+
+  async hset(key: string, field: string, fieldValue: any) {
+    return await this.client.hset(key, field, fieldValue);
+  }
+
+  async hdel(key: string, value: string) {
+    await this.client.hdel(key, value);
   }
 
   getClient(): Redis {

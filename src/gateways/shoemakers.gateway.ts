@@ -10,6 +10,9 @@ import { Server, Socket } from 'socket.io';
 import { GatewaysService } from './gateways.service';
 
 import { AppType, EventEmitSocket, RoomNameAdmin } from '@common/index';
+import { BullQueueService } from '@modules/bullQueue/bullQueue.service';
+import RedisService from '@common/services/redis.service';
+import { DataShoemakerResponseTripDto } from 'src/dto/gateway.dto';
 
 @WebSocketGateway({
   cors: {
@@ -22,6 +25,8 @@ export class ShoemakersGateway {
 
   constructor(
     private readonly gatewaysService: GatewaysService,
+    private readonly bullQueueService: BullQueueService,
+    private readonly redisService: RedisService,
     // private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -40,6 +45,7 @@ export class ShoemakersGateway {
     );
 
     // TODO: enable when 30 day(1/12)
+    // TODO: update emit event
     // if (client.handshake.auth.type == AppType.shoemakers) {
     // }
     // this.eventEmitter.emit('shoemaker-update-location', {
@@ -80,6 +86,64 @@ export class ShoemakersGateway {
     if (customerId && shoemakerId) {
       const socketCustomer = await this.gatewaysService.getSocket(customerId);
       socketCustomer && socketCustomer.join(shoemakerId);
+    }
+  }
+
+  @SubscribeMessage('shoemaker-response-trip')
+  async handleEventShoemakerResponseTrip(
+    @MessageBody()
+    data: DataShoemakerResponseTripDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { accepted, jobId, tripId } = data;
+    if (!jobId && !tripId) return;
+    const currentJob = await this.bullQueueService.getJobTrip(jobId);
+    const shoemakerId = client.handshake.auth.userId;
+    console.log('currentJob', currentJob.getState());
+    if (!currentJob) {
+      client.emit('trip-update', {
+        type: 'customer-cancel',
+        message:
+          'The trip has been cancelled by the customer or has been accepted. You can now accept new trips.',
+        tripId: tripId,
+      });
+    }
+    const statusTrip = await this.redisService.hget(
+      `trips:info:${tripId}`,
+      'status',
+    );
+    if (statusTrip == 'pending') {
+      if (accepted) {
+        await Promise.all([
+          this.redisService.hset(`trips:info:${tripId}`, 'status', 'received'),
+          this.redisService.hset(
+            `trips:info:${tripId}`,
+            'shoemakerId',
+            shoemakerId,
+          ),
+          this.redisService.sadd(`trips:accepted:${tripId}`, shoemakerId),
+        ]);
+
+        // Phát sự kiện qua Redis Pub/Sub
+        await this.redisService.publish(
+          'shoemaker-response-trip',
+          JSON.stringify({
+            event: 'trip-accepted',
+            ...data,
+          }),
+        );
+      } else {
+        this.bullQueueService.addQueueTrip('shoemaker-cancellation', {
+          tripId,
+          shoemakerId,
+        });
+      }
+    } else if (statusTrip == 'received') {
+      client.emit('trip-update', {
+        type: 'accepted',
+        message: 'Trip has been accepted by the customer.',
+        tripId: tripId,
+      });
     }
   }
 }

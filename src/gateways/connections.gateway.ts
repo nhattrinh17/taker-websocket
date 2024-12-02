@@ -60,9 +60,14 @@ export class ConnectionsGateway
         break;
     }
 
-    client.on('forceLeaveRoom', (room: string) => {
+    client.on('LeaveRoom', (room: string) => {
       client.leave(room);
-      console.log(`Socket ${client.id} forced to leave room ${room}`);
+      console.log(`Socket ${client.id}  to leave room ${room}`);
+    });
+
+    client.on('JoinRoom', (room: string) => {
+      client.leave(room);
+      console.log(`Socket ${client.id}  to join room ${room}`);
     });
   }
 
