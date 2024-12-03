@@ -8,6 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GatewaysService } from './gateways.service';
+import { BullQueueService } from '@modules/bullQueue/bullQueue.service';
 
 @WebSocketGateway({
   cors: {
@@ -22,6 +23,7 @@ export class ConnectionsGateway
 
   constructor(
     private readonly gatewaysService: GatewaysService,
+    private readonly bullQueueService: BullQueueService,
     // private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -31,24 +33,25 @@ export class ConnectionsGateway
     // Handle the event when the shoemaker connects
     switch (dataAuth.type) {
       case AppType.shoemakers:
-        // TODO: FIX
-        // this.eventEmitter.emit('shoemaker-update-status', {
-        //   isOnline: true,
-        //   userId: dataAuth.userId,
-        // });
+        this.bullQueueService.addQueueUpdateStatusShoemaker(
+          'shoemaker-update-status',
+          {
+            isOnline: true,
+            userId: dataAuth.userId,
+          },
+        );
         // check trip pending
-        // this.eventEmitter.emit('shoemaker-check-trip-pending', {
-        //   userId: dataAuth.userId,
-        // });
+        this.bullQueueService.addQueueTrip('shoemaker-check-trip-pending', {
+          userId: dataAuth.userId,
+        });
         // join room and save
         await this.gatewaysService.addSocket(dataAuth.userId, client);
         client.join(dataAuth.userId);
         break;
       case AppType.customers:
-        // TODO: FIX
-        // this.eventEmitter.emit('join-room', {
-        //   userId: dataAuth.userId,
-        // });
+        this.bullQueueService.addQueueJoinRoom('join-room-backend', {
+          userId: dataAuth.userId,
+        });
         await this.gatewaysService.addSocket(dataAuth.userId, client);
         client.join(dataAuth.userId);
         break;
@@ -71,16 +74,21 @@ export class ConnectionsGateway
     });
   }
 
-  handleDisconnect(client: any) {
+  handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}, ${client.handshake.auth}`);
     const dataAuth = client.handshake.auth;
     if (dataAuth.type == AppType.admins) {
       return client.leave(RoomNameAdmin);
     } else {
-      // Remove the socket from the list of connected sockets (shoemaker, )
-      this.gatewaysService.removeSocket(client.handshake.auth.userId);
       // Make the socket leave the room
-      client.leave(client.handshake.auth.userId);
+      this.gatewaysService.removeSocket(dataAuth.userId);
+      client.leave(dataAuth.userId);
+      // Remove the socket from the list of connected sockets (shoemaker, )
+      if (client.handshake.auth.type == AppType.customers) {
+        this.bullQueueService.addQueueLeaveRoom('leave-room', {
+          userId: dataAuth.userId,
+        });
+      }
     }
 
     // Handle the event when the shoemaker connects
@@ -90,11 +98,5 @@ export class ConnectionsGateway
     //     userId: client.handshake.auth.userId,
     //   });
     // }
-
-    if (client.handshake.auth.type == AppType.customers) {
-      // this.eventEmitter.emit('leave-room', {
-      //   userId: client.handshake.auth.userId,
-      // });
-    }
   }
 }
