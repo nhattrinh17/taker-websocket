@@ -77,19 +77,6 @@ export class ConnectionsGateway
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}, ${client.handshake.auth}`);
     const dataAuth = client.handshake.auth;
-    if (dataAuth.type == AppType.admins) {
-      return client.leave(RoomNameAdmin);
-    } else {
-      // Make the socket leave the room
-      this.gatewaysService.removeSocket(dataAuth.userId);
-      client.leave(dataAuth.userId);
-      // Remove the socket from the list of connected sockets (shoemaker, )
-      if (client.handshake.auth.type == AppType.customers) {
-        this.bullQueueService.addQueueLeaveRoom('leave-room', {
-          userId: dataAuth.userId,
-        });
-      }
-    }
 
     // Handle the event when the shoemaker connects
     // if ((client.handshake.auth.type = AppType.shoemakers)) {

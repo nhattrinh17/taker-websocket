@@ -15,7 +15,6 @@ export class BullQueueService {
     @InjectQueue(QUEUE_NAMES.UPDATE_STATUS)
     private readonly updateStatusQueue: Queue,
     @InjectQueue(QUEUE_NAMES.JOIN_ROOM) private readonly joinRoomQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.LEAVE_ROOM) private readonly leaveRoomQueue: Queue,
   ) {}
 
   async getJobTrip(jobId: string): Promise<Job<any>> {
@@ -44,13 +43,5 @@ export class BullQueueService {
     option?: Bull.JobOptions,
   ): Promise<Bull.Job<any>> {
     return this.joinRoomQueue.add(name, dto, option);
-  }
-
-  async addQueueLeaveRoom(
-    name: string,
-    dto: QueueHandleLeaveRoomBEDto,
-    option?: Bull.JobOptions,
-  ): Promise<Bull.Job<any>> {
-    return this.leaveRoomQueue.add(name, dto, option);
   }
 }
