@@ -1,21 +1,22 @@
 import { Redis } from 'ioredis';
 
 export default class RedisService {
-  private readonly client: Redis;
-  private readonly subscriber: Redis;
+  private readonly standardClient: Redis;
+  private readonly subscriberClient: Redis; // Client cho subscribe/publish
 
   constructor() {
     try {
-      this.client = new Redis({
+      const redisConfig = {
         host: process.env.QUEUE_HOST,
         port: parseInt(process.env.QUEUE_PORT, 10),
-        password: String(process.env.QUEUE_PASS),
-      });
-      this.subscriber = new Redis({
-        host: process.env.QUEUE_HOST,
-        port: parseInt(process.env.QUEUE_PORT, 10),
-        password: String(process.env.QUEUE_PASS),
-      });
+        password: process.env.QUEUE_PASS,
+      };
+
+      // Client dùng cho lưu trữ dữ liệu
+      this.standardClient = new Redis(redisConfig);
+
+      // Client dùng cho adapter (subscriber mode)
+      this.subscriberClient = new Redis(redisConfig);
     } catch (error) {
       console.log(
         '🚀 ~ RedisService ~ constructor ~ error:',
@@ -27,15 +28,11 @@ export default class RedisService {
     }
 
     // Enable keyspace notifications
-    // this.client.config('SET', 'notify-keyspace-events', 'Ex');
+    // this.standardClient.config('SET', 'notify-keyspace-events', 'Ex');
   }
 
   publish(channel: string, message: string) {
-    return this.client.publish(channel, message);
-  }
-
-  getSubscriber(): Redis {
-    return this.subscriber;
+    return this.subscriberClient.publish(channel, message);
   }
 
   /**
@@ -45,7 +42,7 @@ export default class RedisService {
    */
   set(key: any, value: any): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.client.set(key, value, (err: Error) => {
+      this.standardClient.set(key, value, (err: Error) => {
         if (err) {
           reject(err);
         }
@@ -63,12 +60,18 @@ export default class RedisService {
    */
   setExpire(key: string, value: string, duration: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      return this.client.set(key, value, 'EX', duration, (err: Error) => {
-        if (err) {
-          reject(err);
-        }
-        resolve();
-      });
+      return this.standardClient.set(
+        key,
+        value,
+        'EX',
+        duration,
+        (err: Error) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        },
+      );
     });
   }
 
@@ -78,7 +81,7 @@ export default class RedisService {
    */
   del(key: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      return this.client.del(key, (err: Error) => {
+      return this.standardClient.del(key, (err: Error) => {
         if (err) {
           reject(err);
         }
@@ -89,7 +92,7 @@ export default class RedisService {
 
   public get(key: string): Promise<string | undefined> {
     return new Promise((resolve, reject) => {
-      return this.client.get(key, (err: Error | null, reply: any) => {
+      return this.standardClient.get(key, (err: Error | null, reply: any) => {
         if (err) {
           reject(err);
         }
@@ -100,18 +103,21 @@ export default class RedisService {
 
   public getExpired(key: string): Promise<number | undefined> {
     return new Promise((resolve, reject) => {
-      this.client.ttl(key, (err: Error | null, ttl: number | undefined) => {
-        if (err) {
-          reject(err);
-        }
-        resolve(ttl);
-      });
+      this.standardClient.ttl(
+        key,
+        (err: Error | null, ttl: number | undefined) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(ttl);
+        },
+      );
     });
   }
 
   // Add item to set
   sadd(key: string, valueData: any) {
-    return this.client.sadd(key, valueData);
+    return this.standardClient.sadd(key, valueData);
   }
 
   /**
@@ -121,38 +127,43 @@ export default class RedisService {
    * @returns
    */
   sismember(key: string, valueData: any) {
-    return this.client.sismember(key, valueData);
+    return this.standardClient.sismember(key, valueData);
   }
 
   // Get all item in arr
   smembers(key: string) {
-    return this.client.smembers(key);
+    return this.standardClient.smembers(key);
   }
 
   /**
    * Xóa một phần tửu trong set
    */
   srem(key: string, valueData: any) {
-    return this.client.srem(key, valueData);
+    return this.standardClient.srem(key, valueData);
   }
 
   async hget(key: string, field: string) {
-    return await this.client.hget(key, field);
+    return await this.standardClient.hget(key, field);
   }
 
   async hgetAll(key: string) {
-    return await this.client.hgetall(key);
+    return await this.standardClient.hgetall(key);
   }
 
   async hset(key: string, field: string, fieldValue: any) {
-    return await this.client.hset(key, field, fieldValue);
+    return await this.standardClient.hset(key, field, fieldValue);
   }
 
   async hdel(key: string, value: string) {
-    await this.client.hdel(key, value);
+    await this.standardClient.hdel(key, value);
   }
 
   getClient(): Redis {
-    return this.client;
+    return this.standardClient;
+  }
+
+  // Lấy client cho adapter
+  getSubscriberClient(): Redis {
+    return this.subscriberClient;
   }
 }

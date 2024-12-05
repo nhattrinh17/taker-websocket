@@ -18,8 +18,8 @@ export class GatewaysService implements OnModuleInit {
   constructor(private readonly redis: RedisService) {}
 
   async onModuleInit() {
-    const redisPubClient = this.redis.getClient(); // Redis publisher client
-    const redisSubClient = this.redis.getClient(); // Redis subscriber client
+    const redisPubClient = this.redis.getSubscriberClient(); // Redis publisher client
+    const redisSubClient = this.redis.getSubscriberClient(); // Redis subscriber client
 
     // Gắn Redis Adapter vào Socket.IO
     this.server.adapter(createAdapter(redisPubClient, redisSubClient));

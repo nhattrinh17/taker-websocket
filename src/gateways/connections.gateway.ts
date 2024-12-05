@@ -29,6 +29,7 @@ export class ConnectionsGateway
 
   async handleConnection(client: Socket) {
     const dataAuth = client.handshake.auth;
+    console.log('🚀 ~ handleConnection ~ dataAuth', dataAuth);
 
     // Handle the event when the shoemaker connects
     switch (dataAuth.type) {

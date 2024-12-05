@@ -4,9 +4,11 @@ import { GatewaysService } from './gateways.service';
 import { CustomersGateway } from './customers.gateway';
 import { ShoemakersGateway } from './shoemakers.gateway';
 import RedisService from '@common/services/redis.service';
+import { BullQueueModule } from '@modules/bullQueue/bullQueue.module';
 
 @Global()
 @Module({
+  imports: [BullQueueModule],
   providers: [
     //
     ConnectionsGateway,

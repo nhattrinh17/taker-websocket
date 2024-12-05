@@ -125,13 +125,13 @@ export class ShoemakersGateway {
         ]);
 
         // Phát sự kiện qua Redis Pub/Sub
-        await this.redisService.publish(
-          'shoemaker-response-trip',
-          JSON.stringify({
-            event: 'trip-accepted',
-            ...data,
-          }),
-        );
+        // await this.redisService.publish(
+        //   'shoemaker-response-trip',
+        //   JSON.stringify({
+        //     event: 'trip-accepted',
+        //     ...data,
+        //   }),
+        // );
       } else {
         this.bullQueueService.addQueueTrip('shoemaker-cancellation', {
           tripId,

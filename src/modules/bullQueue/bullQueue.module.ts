@@ -28,9 +28,20 @@ import { QUEUE_NAMES } from '@common/constants';
       }),
       inject: [ConfigService],
     }),
-    BullModule.registerQueue({
-      name: QUEUE_NAMES.LEAVE_ROOM,
-    }),
+    BullModule.registerQueue(
+      {
+        name: QUEUE_NAMES.JOIN_ROOM,
+      },
+      {
+        name: QUEUE_NAMES.LEAVE_ROOM,
+      },
+      {
+        name: QUEUE_NAMES.CUSTOMERS_TRIP,
+      },
+      {
+        name: QUEUE_NAMES.UPDATE_STATUS,
+      },
+    ),
   ],
   providers: [BullQueueService, BullQueueConsumerLeaveRoomService],
   exports: [BullQueueService],
