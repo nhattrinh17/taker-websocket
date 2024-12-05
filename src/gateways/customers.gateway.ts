@@ -31,12 +31,11 @@ export class CustomersGateway {
     data: RequestTripData,
     @ConnectedSocket() client: Socket,
   ) {
-    console.log(
-      'request trip shoemakers',
-      client.id,
-      client.handshake.auth.userId,
-      data,
-    );
+    const dataAuth = client.handshake.auth;
+    return this.gatewaysService.requestFindShoemaker(dataAuth.token, {
+      tripId: data.tripId,
+      userId: dataAuth.userId,
+    });
     // this.eventEmitter.emit('find-closest-shoemakers', {
     //   ...data,
     //   userId: client.handshake.auth.userId,

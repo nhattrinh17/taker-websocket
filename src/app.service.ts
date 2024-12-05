@@ -10,6 +10,7 @@ export class AppService {
   }
 
   sendMessageToRoom(dto: SendMessageToRoom) {
+    console.log('🚀 ~ AppService ~ sendMessageToRoom ~ dto:', dto);
     if (dto.roomName && dto.event && dto.data) {
       return this.gatewaysService.emitToRoomWithServer(
         dto.roomName,

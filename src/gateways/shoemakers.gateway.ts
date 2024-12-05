@@ -96,10 +96,11 @@ export class ShoemakersGateway {
     @ConnectedSocket() client: Socket,
   ) {
     const { accepted, jobId, tripId } = data;
+
     if (!jobId && !tripId) return;
     const currentJob = await this.bullQueueService.getJobTrip(jobId);
     const shoemakerId = client.handshake.auth.userId;
-    console.log('currentJob', currentJob.getState());
+    console.log('currentJob', currentJob?.getState());
     if (!currentJob) {
       client.emit('trip-update', {
         type: 'customer-cancel',
@@ -113,6 +114,8 @@ export class ShoemakersGateway {
       'status',
     );
     if (statusTrip == 'pending') {
+      // add shoemaker interactive
+      await this.redisService.sadd(`trips:interactive:${tripId}`, shoemakerId);
       if (accepted) {
         await Promise.all([
           this.redisService.hset(`trips:info:${tripId}`, 'status', 'received'),
@@ -121,17 +124,17 @@ export class ShoemakersGateway {
             'shoemakerId',
             shoemakerId,
           ),
-          this.redisService.sadd(`trips:accepted:${tripId}`, shoemakerId),
         ]);
 
         // Phát sự kiện qua Redis Pub/Sub
-        // await this.redisService.publish(
-        //   'shoemaker-response-trip',
-        //   JSON.stringify({
-        //     event: 'trip-accepted',
-        //     ...data,
-        //   }),
-        // );
+        await this.redisService.publish(
+          'shoemaker-response-trip',
+          JSON.stringify({
+            event: 'trip-accepted',
+            shoemakerId,
+            ...data,
+          }),
+        );
       } else {
         this.bullQueueService.addQueueTrip('shoemaker-cancellation', {
           tripId,

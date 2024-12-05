@@ -12,5 +12,7 @@ export class AppController {
   }
 
   @Post('send-message')
-  sendMessage(@Body() body: SendMessageToRoom) {}
+  sendMessage(@Body() body: SendMessageToRoom) {
+    return this.appService.sendMessageToRoom(body);
+  }
 }
