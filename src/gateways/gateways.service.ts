@@ -70,11 +70,13 @@ export class GatewaysService implements OnModuleInit {
           `Room '${roomName}' is empty. Event '${event}' was not sent.`,
         );
       }
+      return true;
     } catch (error) {
       console.log(
         '🚀 ~ GatewaysService ~ emitToRoomWithServer ~ error:',
         error,
       );
+      return false;
     }
   }
 

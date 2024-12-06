@@ -42,9 +42,15 @@ export class ConnectionsGateway
           },
         );
         // check trip pending
-        this.bullQueueService.addQueueTrip('shoemaker-check-trip-pending', {
-          userId: dataAuth.userId,
-        });
+        this.bullQueueService.addQueueTrip(
+          'shoemaker-check-trip-pending',
+          {
+            userId: dataAuth.userId,
+          },
+          {
+            priority: 1,
+          },
+        );
         // join room and save
         await this.gatewaysService.addSocket(dataAuth.userId, client);
         client.join(dataAuth.userId);

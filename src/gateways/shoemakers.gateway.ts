@@ -99,15 +99,20 @@ export class ShoemakersGateway {
 
     if (!jobId && !tripId) return;
     const currentJob = await this.bullQueueService.getJobTrip(jobId);
+    const isActiveJob = currentJob ? await currentJob.isActive() : false;
     const shoemakerId = client.handshake.auth.userId;
     console.log('currentJob', currentJob?.getState());
-    if (!currentJob) {
+    console.log('currentJob isActive', isActiveJob);
+    // Skip when trip cancelled
+    if (!isActiveJob) {
       client.emit('trip-update', {
         type: 'customer-cancel',
         message:
           'The trip has been cancelled by the customer or has been accepted. You can now accept new trips.',
         tripId: tripId,
       });
+
+      return;
     }
     const statusTrip = await this.redisService.hget(
       `trips:info:${tripId}`,
@@ -139,6 +144,7 @@ export class ShoemakersGateway {
         this.bullQueueService.addQueueTrip('shoemaker-cancellation', {
           tripId,
           shoemakerId,
+          reason: 'Thợ giày hủy đơn',
         });
       }
     } else if (statusTrip == 'received') {
